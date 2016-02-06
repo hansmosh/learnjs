@@ -7,7 +7,7 @@ code_bucket=${app_name}/_code_bundles
 profile=admin
 
 function check_python() {
-  if ! which python > /dev/null; then
+  if ! which python2.7 > /dev/null; then
     echo "Can't find Python. You need Python 2.7 or later to use this."
     exit 1
   fi
@@ -33,7 +33,7 @@ function check_node_deps() {
 
 function dev_server() {
   cd public
-  exec python -m SimpleHTTPServer 9292
+  exec python2.7 -m SimpleHTTPServer 9292
 }
 
 function create_s3_bucket() {
