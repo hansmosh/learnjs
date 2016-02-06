@@ -2,3 +2,6 @@
 dist
 working
 master
+
+# vim stuff
+*.swp
