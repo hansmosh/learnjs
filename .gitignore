@@ -5,3 +5,4 @@ master
 
 # vim stuff
 *.swp
+.ropeproject
