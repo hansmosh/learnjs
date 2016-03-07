@@ -58,7 +58,7 @@ learnjs.buildCorrectFlash = function(problemNumber) {
 
 learnjs.problemView = function(data) {
     var problemNumber = parseInt(data, 10);
-    var view = $('.templates .problem-view').clone();
+	var view = learnjs.template('problem-view');
     var problemData = learnjs.problems[problemNumber - 1];
     var resultFlash = view.find('.result');
 
