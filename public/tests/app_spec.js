@@ -77,6 +77,75 @@ describe('LearnJS', function() {
 		expect($('.signin-bar a').attr('href')).toEqual('#profile');
 	});
 
+	describe('saveAnswer', function() {
+		var dbspy, req, identityObj;
+		beforeEach(function() {
+			dbspy = jasmine.createSpyObj('db', ['put']);
+			dbspy.put.and.returnValue('request');
+			spyOn(AWS.DynamoDB,'DocumentClient').and.returnValue(dbspy);
+			spyOn(learnjs, 'sendDbRequest');
+			identityObj = {id: 'COGNITO_ID'};
+			learnjs.identity.resolve(identityObj);
+		});
+
+		it('writes the item to the database', function() {
+			learnjs.saveAnswer(1, {});
+			expect(learnjs.sendDbRequest).toHaveBeenCalledWith('request', jasmine.any(Function));
+			expect(dbspy.put).toHaveBeenCalledWith({
+				TableName: 'learnjs',
+				Item: {
+					userId: 'COGNITO_ID',
+					problemId: 1,
+					answer: {}
+				}
+			});
+		});
+
+		it('resubmits the request on retry', function() {
+			learnjs.saveAnswer(1, {answer: 'false'});
+			spyOn(learnjs, 'saveAnswer').and.returnValue('promise');
+			expect(learnjs.sendDbRequest.calls.first().args[1]()).toEqual('promise');
+			expect(learnjs.saveAnswer).toHaveBeenCalledWith(1, {answer: 'false'});
+		});
+	});
+
+	describe('sendDbRequest', function() {
+		var request, requestHandlers, promise, retrySpy;
+		beforeEach(function() {
+			requestHandlers = {};
+			request = jasmine.createSpyObj('request', ['send', 'on']);
+			request.on.and.callFake(function(eventName, callback) {
+				requestHandlers[eventName] = callback;
+			});
+			retrySpy = jasmine.createSpy('retry');
+			promise = learnjs.sendDbRequest(request, retrySpy);
+		});
+
+		it('resolves the returned promise on success', function(done) { 
+			requestHandlers.success({data: 'data'}); 
+			expect(request.send).toHaveBeenCalled(); 
+			promise.then(function(data) { 
+				expect(data).toEqual('data'); 
+				done(); 
+			}, fail); 
+		});
+
+		it('rejects the returned promise on error', function(done) {
+			learnjs.identity.resolve({refresh: function() { return new $.Deferred().reject()}});
+			requestHandlers.error({code: "SomeError"});
+			promise.fail(function(resp) {
+				expect(resp).toEqual({code: "SomeError"});
+				done();
+			});
+		});
+
+		it('refreshes the credentials and retries when the credentials are expired', function() {
+			learnjs.identity.resolve({refresh: function() { return new $.Deferred().resolve()}});
+			requestHandlers.error({code: "CredentialsError"});
+			expect(retrySpy).toHaveBeenCalled(); 
+		});
+	});
+
 	describe('problem view', function() {
         var view;
         beforeEach(function() {
