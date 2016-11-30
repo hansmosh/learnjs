@@ -79,6 +79,14 @@ learnjs.problemView = function(data) {
         return false;
     }
 
+	// Populate answer with previously submitted correct answer
+	learnjs.fetchAnswer(problemNumber).then(function(data) {
+		console.log(data);
+		if (data.Item) {
+			answer.val(data.Item.answer);
+		}
+	});
+
     // Add skip button to nav
     if (problemNumber < learnjs.problems.length) {
         var buttonItem = learnjs.template('skip-btn');
@@ -198,7 +206,8 @@ learnjs.saveAnswer = function(problemId, answer) {
 	return learnjs.identity.then(function(identity) {
 		var db = new AWS.DynamoDB.DocumentClient();
 		var item = {
-			TableName: 'learnjs', Item: {
+			TableName: 'learnjs',
+			Item: {
 				userId: identity.id,
 				problemId: problemId,
 				answer: answer
@@ -207,5 +216,20 @@ learnjs.saveAnswer = function(problemId, answer) {
 		return learnjs.sendDbRequest(db.put(item), function() {
 			return learnjs.saveAnswer(problemId, answer);
 		})
+	});
+};
+
+learnjs.fetchAnswer = function(problemId) {
+	return learnjs.identity.then(function(identity) {
+		var db = new AWS.DynamoDB.DocumentClient();
+		var item = {
+			TableName: 'learnjs',
+			Key: {
+				userId: identity.id,
+				problemId: problemId
+			}
+		};
+		return learnjs.sendDbRequest(db.get(item), function() {
+			return learnjs.fetchAnswer(problemId); })
 	});
 };
