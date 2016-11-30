@@ -81,7 +81,6 @@ learnjs.problemView = function(data) {
 
 	// Populate answer with previously submitted correct answer
 	learnjs.fetchAnswer(problemNumber).then(function(data) {
-		console.log(data);
 		if (data.Item) {
 			answer.val(data.Item.answer);
 		}
@@ -233,3 +232,17 @@ learnjs.fetchAnswer = function(problemId) {
 			return learnjs.fetchAnswer(problemId); })
 	});
 };
+
+learnjs.countAnswers = function(problemId) {
+	return learnjs.identity.then(function(identity) {
+		var db = new AWS.DynamoDB.DocumentClient();
+		var params = {
+			TableName: 'learnjs',
+			Select: 'COUNT',
+			FilterExpression: 'problemId = :problemId',
+			ExpressionAttributeValues: {':problemId': problemId}
+		};
+		return learnjs.sendDbRequest(db.scan(params), function() {
+			return learnjs.countAnswers(problemId); })
+	});
+}
